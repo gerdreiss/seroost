@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
 
-/// Simple program to greet a person
 #[derive(Parser, Debug)]
 #[command(version, about)]
 pub(crate) struct Cli {
