@@ -4,6 +4,7 @@ use std::fs;
 use std::io;
 use std::path::Path;
 use std::path::PathBuf;
+use walkdir::WalkDir;
 use xml::reader::XmlEvent;
 use xml::EventReader;
 
@@ -65,23 +66,28 @@ pub(crate) fn check_index(index_path: &Path) -> io::Result<()> {
 }
 
 pub(crate) fn index_folder(folder_path: &Path, index_path: &Path) -> io::Result<()> {
-    let mut tf_index = TFI::new();
-
-    for entry in fs::read_dir(folder_path)? {
-        match entry {
-            Err(err) => eprintln!("Failed to read directory entry: {}", err),
-            Ok(file) => match file.file_type() {
-                Err(err) => eprintln!("Failed to determine file type: {}", err),
-                Ok(file_type) => {
-                    if file_type.is_file() {
-                        let file_path = file.path();
-                        let tf = index_file(&file_path)?;
-                        tf_index.insert(file_path, tf);
+    let tf_index = WalkDir::new(folder_path)
+        .into_iter()
+        .filter_map(|f| f.ok())
+        .fold(TFI::new(), |mut tfi, file| {
+            if file.file_type().is_file()
+                && file
+                    .file_name()
+                    .to_str()
+                    .is_some_and(|name| name.ends_with("xhtml"))
+            {
+                let file_path = file.path();
+                match index_file(file_path) {
+                    Ok(tf) => {
+                        tfi.insert(file_path.to_path_buf(), tf);
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to index file {}: {}", file_path.display(), err);
                     }
                 }
-            },
-        }
-    }
+            }
+            tfi
+        });
 
     write_index(index_path, &tf_index)?;
 
