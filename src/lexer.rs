@@ -13,7 +13,7 @@ impl<'a> Lexer<'a> {
     }
 
     pub(crate) fn trim_start(&mut self) {
-        while self.content.len() > 0 && self.content[0].is_whitespace() {
+        while !self.content.is_empty() && self.content[0].is_whitespace() {
             self.content = &self.content[1..];
         }
     }
