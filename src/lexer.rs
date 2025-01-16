@@ -36,22 +36,26 @@ impl<'a> Lexer<'a> {
         self.take(n)
     }
 
-    pub(crate) fn next_token(&mut self) -> Option<&'a [char]> {
+    pub(crate) fn next_token(&mut self) -> Option<String> {
+        fn to_upper(slice: &[char]) -> String {
+            slice.iter().map(|c| c.to_ascii_uppercase()).collect()
+        }
+
         self.trim_start();
         if self.is_empty() {
             None
         } else if self.content[0].is_numeric() {
-            Some(self.take_while(|c| c.is_numeric()))
+            Some(self.take_while(|c| c.is_numeric()).iter().collect())
         } else if self.content[0].is_alphabetic() {
-            Some(self.take_while(|c| c.is_alphanumeric()))
+            Some(to_upper(self.take_while(|c| c.is_alphanumeric())))
         } else {
-            Some(self.take(1))
+            Some(to_upper(self.take(1)))
         }
     }
 }
 
-impl<'a> Iterator for Lexer<'a> {
-    type Item = &'a [char];
+impl Iterator for Lexer<'_> {
+    type Item = String;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()

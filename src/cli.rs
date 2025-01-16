@@ -17,10 +17,17 @@ pub(crate) enum Commands {
         #[arg(short, long, value_name = "INDEX")]
         index: PathBuf,
     },
-    /// Index to search
+    /// Search index
     Search {
         #[arg(short, long, value_name = "INDEX")]
         index: PathBuf,
         term: String,
+    },
+    /// Start server and load the index
+    Serve {
+        #[arg(short, long, value_name = "PORT", default_value_t = 8080)]
+        port: usize,
+        #[arg(short, long, value_name = "INDEX")]
+        index: PathBuf,
     },
 }

@@ -1,17 +1,15 @@
 use crate::lexer::Lexer;
+use crate::types::TF;
+use crate::types::TFI;
+
 use std::collections::HashMap;
 use std::fs;
 use std::io;
 use std::path::Path;
-use std::path::PathBuf;
 use walkdir::DirEntry;
 use walkdir::WalkDir;
 use xml::reader::XmlEvent;
 use xml::EventReader;
-
-#[allow(clippy::upper_case_acronyms)]
-type TFI = HashMap<PathBuf, TF>;
-type TF = HashMap<String, usize>;
 
 fn read_xml_file(file_path: &Path) -> io::Result<String> {
     let file = fs::File::open(file_path)?;
@@ -26,26 +24,17 @@ fn read_xml_file(file_path: &Path) -> io::Result<String> {
 }
 
 fn index_file(file_path: &Path) -> io::Result<HashMap<String, usize>> {
-    fn to_uppercase_string(token: &[char]) -> String {
-        token
-            .iter()
-            .map(|c| c.to_ascii_uppercase())
-            .collect::<String>()
-    }
-
     println!("Indexing {p}...", p = &file_path.display());
 
     let content = read_xml_file(file_path)?.chars().collect::<Vec<_>>();
-    let tf = Lexer::new(&content)
-        .map(to_uppercase_string)
-        .fold(TF::new(), |mut tf, term| {
-            if let Some(freq) = tf.get(&term) {
-                tf.insert(term, freq + 1);
-            } else {
-                tf.insert(term, 1);
-            }
-            tf
-        });
+    let tf = Lexer::new(&content).fold(TF::new(), |mut tf, term| {
+        if let Some(freq) = tf.get(&term) {
+            tf.insert(term, freq + 1);
+        } else {
+            tf.insert(term, 1);
+        }
+        tf
+    });
 
     Ok(tf)
 }
@@ -59,11 +48,16 @@ fn write_index(index_path: &Path, tf_index: &TFI) -> io::Result<()> {
     Ok(())
 }
 
+pub(crate) fn read_index(index_path: &Path) -> io::Result<TFI> {
+    let index_file = fs::File::open(index_path)?;
+    let tf_index = serde_json::from_reader::<fs::File, TFI>(index_file)?;
+    Ok(tf_index)
+}
+
 pub(crate) fn check_index(index_path: &Path) -> io::Result<()> {
     println!("Reading {p}...", p = index_path.display());
 
-    let index_file = fs::File::open(index_path)?;
-    let tf_index = serde_json::from_reader::<fs::File, TFI>(index_file)?;
+    let tf_index = read_index(index_path)?;
 
     println!(
         "{p:?} contains {count} files",
