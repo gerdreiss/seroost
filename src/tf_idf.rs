@@ -1,9 +1,9 @@
-use std::{collections::HashMap, path::PathBuf};
+use crate::lexer::Lexer;
+use crate::types::TF;
+use crate::types::TFI;
 
-use crate::{
-    lexer::Lexer,
-    types::{TF, TFI},
-};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 fn tf(term: &str, doc: &TF) -> f32 {
     let f = *doc.get(term).unwrap_or(&0) as f32;
@@ -31,17 +31,20 @@ fn rank(phrase: &str, doc: &TF, tfi: &TFI) -> f32 {
 pub(crate) fn compute_ranks(phrase: String, tf_index: &TFI) -> HashMap<&PathBuf, f32> {
     let mut ranks = tf_index
         .iter()
-        .map(|(path, tf)| (path, rank(&phrase, tf, tf_index)))
+        .filter_map(|(path, tf)| {
+            let score = rank(&phrase, tf, tf_index);
+            if score > 0.0 {
+                Some((path, score))
+            } else {
+                None
+            }
+        })
         .collect::<Vec<_>>();
 
     ranks.sort_by(|(_, l), (_, r)| r.total_cmp(l));
-
     ranks.clone().into_iter().take(10).for_each(|(p, r)| {
         println!("{path} => {r}", path = p.display());
     });
 
-    ranks
-        .into_iter()
-        .take_while(|(_, tf)| *tf > 0.0)
-        .collect::<HashMap<_, _>>()
+    ranks.iter().copied().collect()
 }

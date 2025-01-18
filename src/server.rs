@@ -1,6 +1,15 @@
-use crate::{indexer, tf_idf, types::TFI};
-use std::{fs::File, io::Error, path::Path};
-use tiny_http::{Header, Method, Request, Response, Server};
+use crate::indexer;
+use crate::tf_idf;
+use crate::types::TFI;
+
+use std::fs::File;
+use std::io::Error;
+use std::path::Path;
+use tiny_http::Header;
+use tiny_http::Method;
+use tiny_http::Request;
+use tiny_http::Response;
+use tiny_http::Server;
 
 fn serve_static_file(request: Request, file_path: &str, content_type: &str) -> Result<(), Error> {
     let file = File::open(file_path)?;
@@ -25,7 +34,7 @@ fn search(mut request: Request, tf_index: &TFI) -> Result<(), Error> {
 }
 
 pub(crate) fn serve(port: usize, index_path: &Path) -> anyhow::Result<()> {
-    let server = Server::http(format!("0.0.0.0:{port}")).unwrap();
+    let server = Server::http(format!("0.0.0.0:{port}")).expect("Server to start");
 
     println!("listening at {addr} ...", addr = server.server_addr());
 
