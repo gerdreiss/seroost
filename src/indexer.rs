@@ -31,11 +31,7 @@ fn index_file(file_path: &Path) -> Result<HashMap<String, usize>> {
     let content = read_xml_file(file_path)?.chars().collect::<Vec<_>>();
     let tf = Lexer::new(&content) //
         .fold(TF::new(), |mut tf, term| {
-            if let Some(freq) = tf.get(&term) {
-                tf.insert(term, freq + 1);
-            } else {
-                tf.insert(term, 1);
-            }
+            *tf.entry(term).or_insert(0) += 1;
             tf
         });
 

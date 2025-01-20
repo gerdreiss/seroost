@@ -31,14 +31,8 @@ fn rank(phrase: &str, doc: &TF, tfi: &TFI) -> f32 {
 pub(crate) fn compute_ranks(phrase: String, tf_index: &TFI) -> HashMap<&PathBuf, f32> {
     let mut ranks = tf_index
         .iter()
-        .filter_map(|(path, tf)| {
-            let score = rank(&phrase, tf, tf_index);
-            if score > 0.0 {
-                Some((path, score))
-            } else {
-                None
-            }
-        })
+        .map(|(path, tf)| (path, rank(&phrase, tf, tf_index)))
+        .filter(|(_, score)| *score > 0.0)
         .collect::<Vec<_>>();
 
     ranks.sort_by(|(_, l), (_, r)| r.total_cmp(l));
