@@ -15,7 +15,7 @@ use xml::EventReader;
 fn read_xml_file(file_path: &Path) -> Result<String> {
     let reader = BufReader::new(File::open(file_path)?);
     let file_size = reader.get_ref().metadata()?.len() as usize;
-    let mut content = String::with_capacity(file_size);
+    let mut content = String::with_capacity(file_size / 2);
     for event in EventReader::new(reader).into_iter().flatten() {
         if let XmlEvent::Characters(text) = event {
             content.push_str(&text);
@@ -42,7 +42,8 @@ fn write_index(index_path: &Path, tf_index: &TFI) -> Result<()> {
     println!("Writing {p}...", p = index_path.display());
 
     let index_file = File::create(index_path)?;
-    serde_json::to_writer(index_file, tf_index)?;
+    let buf_writer = std::io::BufWriter::new(index_file);
+    serde_json::to_writer(buf_writer, tf_index)?;
 
     Ok(())
 }
