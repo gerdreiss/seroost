@@ -63,8 +63,8 @@ pub(crate) fn check_index(index_path: &Path) -> Result<()> {
     let tf_index = read_index(index_path)?;
 
     println!(
-        "{p:?} contains {count} files",
-        p = &index_path,
+        "{p} contains {count} files",
+        p = &index_path.display(),
         count = tf_index.len()
     );
 
@@ -73,11 +73,7 @@ pub(crate) fn check_index(index_path: &Path) -> Result<()> {
 
 pub(crate) fn index_folder(folder_path: &Path, index_path: &Path) -> Result<()> {
     fn is_xhtml_file(file: &DirEntry) -> bool {
-        file.file_type().is_file()
-            && file
-                .file_name()
-                .to_str()
-                .is_some_and(|name| name.ends_with("xhtml"))
+        file.file_type().is_file() && file.path().extension().is_some_and(|ext| ext == "xhtml")
     }
 
     let tf_index = WalkDir::new(folder_path)
