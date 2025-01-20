@@ -5,6 +5,7 @@ use crate::types::TFI;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
+use std::io::BufWriter;
 use std::io::Result;
 use std::path::Path;
 use walkdir::DirEntry;
@@ -13,7 +14,8 @@ use xml::reader::XmlEvent;
 use xml::EventReader;
 
 fn read_xml_file(file_path: &Path) -> Result<String> {
-    let reader = BufReader::new(File::open(file_path)?);
+    let file = File::open(file_path)?;
+    let reader = BufReader::new(file);
     let file_size = reader.get_ref().metadata()?.len() as usize;
     let mut content = String::with_capacity(file_size / 2);
     for event in EventReader::new(reader).into_iter().flatten() {
@@ -42,7 +44,7 @@ fn write_index(index_path: &Path, tf_index: &TFI) -> Result<()> {
     println!("Writing {p}...", p = index_path.display());
 
     let index_file = File::create(index_path)?;
-    let buf_writer = std::io::BufWriter::new(index_file);
+    let buf_writer = BufWriter::new(index_file);
     serde_json::to_writer(buf_writer, tf_index)?;
 
     Ok(())
@@ -50,7 +52,8 @@ fn write_index(index_path: &Path, tf_index: &TFI) -> Result<()> {
 
 pub(crate) fn read_index(index_path: &Path) -> Result<TFI> {
     let index_file = File::open(index_path)?;
-    let tf_index = serde_json::from_reader::<File, TFI>(index_file)?;
+    let reader = BufReader::new(index_file);
+    let tf_index = serde_json::from_reader::<BufReader<File>, TFI>(reader)?;
     Ok(tf_index)
 }
 
