@@ -28,7 +28,7 @@ fn read_xml_file(file_path: &Path) -> Result<String> {
 }
 
 fn index_file(file_path: &Path) -> Result<HashMap<String, usize>> {
-    println!("Indexing {p}...", p = &file_path.display());
+    println!("Indexing {}...", file_path.display());
 
     let content = read_xml_file(file_path)?.chars().collect::<Vec<_>>();
     let tf = Lexer::new(&content) //
@@ -41,7 +41,7 @@ fn index_file(file_path: &Path) -> Result<HashMap<String, usize>> {
 }
 
 fn write_index(index_path: &Path, tf_index: &TFI) -> Result<()> {
-    println!("Writing {p}...", p = index_path.display());
+    println!("Writing {}...", index_path.display());
 
     let index_file = File::create(index_path)?;
     let buf_writer = BufWriter::new(index_file);
@@ -58,15 +58,11 @@ pub(crate) fn read_index(index_path: &Path) -> Result<TFI> {
 }
 
 pub(crate) fn check_index(index_path: &Path) -> Result<()> {
-    println!("Reading {p}...", p = index_path.display());
+    println!("Reading {}...", index_path.display());
 
     let tf_index = read_index(index_path)?;
 
-    println!(
-        "{p} contains {count} files",
-        p = &index_path.display(),
-        count = tf_index.len()
-    );
+    println!("{} contains {} files", index_path.display(), tf_index.len());
 
     Ok(())
 }

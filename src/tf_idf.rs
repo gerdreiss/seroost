@@ -37,7 +37,7 @@ pub(crate) fn compute_ranks(phrase: String, tf_index: &TFI) -> HashMap<&PathBuf,
 
     ranks.sort_by(|(_, l), (_, r)| r.total_cmp(l));
     ranks.clone().into_iter().take(10).for_each(|(p, r)| {
-        println!("{path} => {r}", path = p.display());
+        println!("{} => {}", p.display(), r);
     });
 
     ranks.iter().copied().collect()

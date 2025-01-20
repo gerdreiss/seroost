@@ -36,7 +36,7 @@ fn search(mut request: Request, tf_index: &TFI) -> Result<(), Error> {
 pub(crate) fn serve(port: usize, index_path: &Path) -> anyhow::Result<()> {
     let server = Server::http(format!("0.0.0.0:{port}")).expect("Server to start");
 
-    println!("listening at {addr} ...", addr = server.server_addr());
+    println!("listening at {} ...", server.server_addr());
 
     let tf_index = indexer::read_index(index_path)?;
 
