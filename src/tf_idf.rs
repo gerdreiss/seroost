@@ -33,8 +33,5 @@ pub(crate) fn compute_scores(phrase: String, model: &Model) -> HashMap<&PathBuf,
         .iter()
         .map(|(path, tf)| (path, compute_score(&phrase, tf, model)))
         .filter(|(_, score)| *score > 0.0)
-        .collect::<Vec<_>>()
-        .iter()
-        .copied()
         .collect()
 }
