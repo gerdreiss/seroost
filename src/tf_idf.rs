@@ -1,37 +1,37 @@
 use crate::lexer::Lexer;
+use crate::types::Model;
+use crate::types::DF;
 use crate::types::TF;
-use crate::types::TFI;
 
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-fn tf(term: &str, doc: &TF) -> f32 {
+fn compute_tf(term: &str, doc: &TF) -> f32 {
     let f = *doc.get(term).unwrap_or(&0) as f32;
     let s = doc.iter().map(|(_, f)| *f).sum::<usize>() as f32;
     f / s
 }
 
-fn idf(term: &str, tfi: &TFI) -> f32 {
-    let n = tfi.len() as f32;
-    let m = tfi
-        .values()
-        .filter(|tf| tf.contains_key(term))
-        .count()
-        .max(1) as f32;
+fn compute_idf(term: &str, n: usize, df: &DF) -> f32 {
+    let n = n as f32;
+    let m = df.get(term).copied().unwrap_or(1) as f32;
     (n / m).log10()
 }
 
-fn rank(phrase: &str, doc: &TF, tfi: &TFI) -> f32 {
+fn compute_score(phrase: &str, doc: &TF, model: &Model) -> f32 {
     let content = phrase.chars().collect::<Vec<_>>();
     Lexer::new(&content)
-        .map(|token| tf(&token, doc) * idf(&token, tfi))
+        .map(|token| {
+            compute_tf(&token, doc) * compute_idf(&token, model.tf_index.len(), &model.df_index)
+        })
         .sum()
 }
 
-pub(crate) fn compute_ranks(phrase: String, tf_index: &TFI) -> HashMap<&PathBuf, f32> {
-    let mut ranks = tf_index
+pub(crate) fn compute_scores(phrase: String, model: &Model) -> HashMap<&PathBuf, f32> {
+    let mut ranks = model
+        .tf_index
         .iter()
-        .map(|(path, tf)| (path, rank(&phrase, tf, tf_index)))
+        .map(|(path, tf)| (path, compute_score(&phrase, tf, model)))
         .filter(|(_, score)| *score > 0.0)
         .collect::<Vec<_>>();
 

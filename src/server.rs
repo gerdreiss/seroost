@@ -1,6 +1,6 @@
 use crate::indexer;
 use crate::tf_idf;
-use crate::types::TFI;
+use crate::types::Model;
 
 use std::fs::File;
 use std::io::Error;
@@ -20,10 +20,10 @@ fn serve_static_file(request: Request, file_path: &str, content_type: &str) -> R
     request.respond(response)
 }
 
-fn search(mut request: Request, tf_index: &TFI) -> Result<(), Error> {
+fn search(mut request: Request, model: &Model) -> Result<(), Error> {
     let mut body = String::new();
     let _ = request.as_reader().read_to_string(&mut body);
-    let ranks = tf_idf::compute_ranks(body, tf_index);
+    let ranks = tf_idf::compute_scores(body, model);
     let json = serde_json::to_value(ranks)?.to_string();
     let header = Header::from_bytes("Content-Type", "application/json").unwrap();
     request.respond(
@@ -38,12 +38,12 @@ pub(crate) fn serve(port: usize, index_path: &Path) -> anyhow::Result<()> {
 
     println!("listening at {} ...", server.server_addr());
 
-    let tf_index = indexer::read_index(index_path)?;
+    let model = indexer::read_index(index_path)?;
 
     for request in server.incoming_requests() {
         match (request.method(), request.url()) {
             (Method::Post, "/api/search") => {
-                let _ = search(request, &tf_index);
+                let _ = search(request, &model);
             }
             (Method::Get, "/" | "/index.html") => {
                 let _ = serve_static_file(request, "index.html", "text/html;charset=utf-8");

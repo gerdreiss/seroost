@@ -1,8 +1,8 @@
 use crate::lexer::Lexer;
+use crate::types::Model;
+use crate::types::DF;
 use crate::types::TF;
-use crate::types::TFI;
 
-use std::collections::HashMap;
 use std::fs::File;
 use std::io::BufReader;
 use std::io::BufWriter;
@@ -27,42 +27,50 @@ fn read_xml_file(file_path: &Path) -> Result<String> {
     Ok(content)
 }
 
-fn index_file(file_path: &Path) -> Result<HashMap<String, usize>> {
+fn index_file(file_path: &Path) -> Result<(TF, DF)> {
     println!("Indexing {}...", file_path.display());
 
     let content = read_xml_file(file_path)?.chars().collect::<Vec<_>>();
-    let tf = Lexer::new(&content) //
-        .fold(TF::new(), |mut tf, term| {
-            *tf.entry(term).or_insert(0) += 1;
-            tf
-        });
+    let tf = Lexer::new(&content).fold(TF::new(), |mut tf, term| {
+        *tf.entry(term).or_insert(0) += 1;
+        tf
+    });
 
-    Ok(tf)
+    let df = tf.keys().fold(DF::new(), |mut df, term| {
+        *df.entry(term.to_string()).or_insert(0) += 1;
+        df
+    });
+
+    Ok((tf, df))
 }
 
-fn write_index(index_path: &Path, tf_index: &TFI) -> Result<()> {
+fn write_index(index_path: &Path, model: &Model) -> Result<()> {
     println!("Writing {}...", index_path.display());
 
     let index_file = File::create(index_path)?;
     let buf_writer = BufWriter::new(index_file);
-    serde_json::to_writer(buf_writer, tf_index)?;
+    serde_json::to_writer(buf_writer, model)?;
 
     Ok(())
 }
 
-pub(crate) fn read_index(index_path: &Path) -> Result<TFI> {
+pub(crate) fn read_index(index_path: &Path) -> Result<Model> {
     let index_file = File::open(index_path)?;
     let reader = BufReader::new(index_file);
-    let tf_index = serde_json::from_reader::<BufReader<File>, TFI>(reader)?;
+    let tf_index = serde_json::from_reader::<BufReader<File>, Model>(reader)?;
     Ok(tf_index)
 }
 
 pub(crate) fn check_index(index_path: &Path) -> Result<()> {
     println!("Reading {}...", index_path.display());
 
-    let tf_index = read_index(index_path)?;
+    let model = read_index(index_path)?;
 
-    println!("{} contains {} files", index_path.display(), tf_index.len());
+    println!(
+        "{} contains {} files",
+        index_path.display(),
+        model.tf_index.len()
+    );
 
     Ok(())
 }
@@ -72,24 +80,27 @@ pub(crate) fn index_folder(folder_path: &Path, index_path: &Path) -> Result<()> 
         file.file_type().is_file() && file.path().extension().is_some_and(|ext| ext == "xhtml")
     }
 
-    let tf_index = WalkDir::new(folder_path)
+    let model = WalkDir::new(folder_path)
         .into_iter()
         .filter_map(|f| f.ok())
         .filter(is_xhtml_file)
-        .fold(TFI::new(), |mut tfi, file| {
+        .fold(Model::default(), |mut model, file| {
             let file_path = file.path();
             match index_file(file_path) {
-                Ok(tf) => {
-                    tfi.insert(file_path.to_path_buf(), tf);
+                Ok((tf, df)) => {
+                    model.tf_index.insert(file_path.to_path_buf(), tf);
+                    for (term, count) in df {
+                        *model.df_index.entry(term).or_insert(0) += count;
+                    }
                 }
                 Err(err) => {
                     eprintln!("Failed to index file {}: {}", file_path.display(), err);
                 }
             }
-            tfi
+            model
         });
 
-    write_index(index_path, &tf_index)?;
+    write_index(index_path, &model)?;
 
     Ok(())
 }
